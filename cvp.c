@@ -1,13 +1,13 @@
 #include <libavcodec/avcodec.h>
 #include <libavcodec/codec.h>
 #include <libavformat/avformat.h>
-#include <ffmpeg/swscale.h>
+#include <libswscale/swscale.h>
 #include <libavutil/avutil.h>
+#include <libavutil/frame.h>
 #include <libavutil/pixfmt.h>
 
 
-int main(int argc, charg *argv[]
-{
+int main(int argc, char *argv[]){
   /* Register available file formats with the library for automatic use */
   av register all();
 
@@ -88,4 +88,85 @@ int main(int argc, charg *argv[]
 
   /* Assign buffer parts to image planes in pFrameRGB */
   avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24, pCodecCtx->width, pCodecCTx->height);
-}
+
+  
+  /* Reading packets  */
+  struct SwsContext *sws_ctx = NULL;
+  int frameFinished;
+  AVPacket packet;
+
+  /* Initialise SWS context */
+  sws_ctx = sws_getContext(pCodecCtx->width,
+                           pCodecCtx->height,
+                           pCodecCtx->pix_fmt,
+                           pCodecCtx->width,
+                           pCodecCtx->height,
+                           PIX_FMT_RGB24, 
+                           SWS_BILINEAR, 
+                           NULL, 
+                           NULL, 
+                           NULL 
+                           );
+  
+  i-0;
+  while(av_read_frame(pFormatCtx, &packet)>=0){
+    /* Check that packet is from the video stream */
+    if(packet.stream_index==videoStream) {
+      /* Decode video frame */
+      avcodec_decode_video2(pCodecCTx, pFrame, &frameFinished, &packet);
+
+      /* Check that this is a video frame */
+      if(frameFinished) {
+        /* Convert to RGB format */
+        sws_scale(sws_ctx, (uint8_t const * const *)pFrame->data,
+                            pFrame->linesize, 0, pCodecCTx->height,
+                            pFrameRGB->data, pFrameRGB->linesize);
+
+        /* Save frame to disk */
+        if(++i<=5)
+          saveFrame(pFrameRGB, pCodecCTx->width, pCodecCTx->height, i);
+      }
+    }
+    /* Free the packet allocated by av_read_frame */
+    av_free_packet(&packet);
+  }
+
+  /* Free the RGB image */
+  av_free(buffer);
+  av_Free(pFrameRGB);
+
+  /* Free the YUV frame */
+  av_free(pFrame);
+
+  /* Close the codecs */
+  avcodec_close(pCodecCtx);
+  avcodec_close(pCodeCtxOrig);
+
+  /* Close the video file */
+  avformat_close_input(&pFormatCtx;
+
+  return 0;
+
+} 
+/* Write the RGB to PPM file */
+  void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
+    FILE *pFile;
+    char szFilename[32];
+    int y;
+
+    /* Open file */
+    sprintf(szFilename, "frame%d.ppm", iframe);
+    pFile=fopen(szFilename, "wb");
+    if(pFile==NULL)
+      return;
+
+    /* Write header */
+    fprint(pFile, "P6\n%d %d\n255\n", width, height);
+
+    /* Write pixel data */
+    for (y=0; y<height; y++)
+      fwrite(pFrame->data[0]+y*pFrame->linesize[0], 1, width*3, pFile);
+
+    /* CLose file */
+    fclose(pFile);
+  }
